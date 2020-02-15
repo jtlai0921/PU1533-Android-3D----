@@ -1,0 +1,27 @@
+{
+  "D:\\android-sdk\\platforms\\android-10\\android.jar": {
+    "location": "D:\\android-sdk\\platforms\\android-10\\android.jar",
+    "status": "UNRESOLVED",
+    "error": "No call model found for \u0027D:\\android-sdk\\platforms\\android-10\\android.jar\u0027. Neither fingerprint \u0027b50d42b32e1d8a6c2d5f19a846474d5e2199c68e\u0027 nor symbolic name \u0027android\u0027 are known."
+  },
+  "D:\\程穝eclipse\\eclipse\\workspace\\Tank9-3\\src": {
+    "location": "D:\\程穝eclipse\\eclipse\\workspace\\Tank9-3\\src",
+    "status": "UNRESOLVED",
+    "error": "No class path info available for \u0027D:\\程穝eclipse\\eclipse\\workspace\\Tank9-3\\src\u0027. Skipped."
+  },
+  "D:\\程穝eclipse\\eclipse\\workspace\\Tank9-3\\gen": {
+    "location": "D:\\程穝eclipse\\eclipse\\workspace\\Tank9-3\\gen",
+    "status": "UNRESOLVED",
+    "error": "No class path info available for \u0027D:\\程穝eclipse\\eclipse\\workspace\\Tank9-3\\gen\u0027. Skipped."
+  },
+  "D:\\eclipse\\workplace\\Tank1\\gen": {
+    "location": "D:\\eclipse\\workplace\\Tank1\\gen",
+    "status": "UNRESOLVED",
+    "error": "No class path info available for \u0027D:\\eclipse\\workplace\\Tank1\\gen\u0027. Skipped."
+  },
+  "D:\\eclipse\\workplace\\Tank1\\src": {
+    "location": "D:\\eclipse\\workplace\\Tank1\\src",
+    "status": "UNRESOLVED",
+    "error": "No class path info available for \u0027D:\\eclipse\\workplace\\Tank1\\src\u0027. Skipped."
+  }
+}

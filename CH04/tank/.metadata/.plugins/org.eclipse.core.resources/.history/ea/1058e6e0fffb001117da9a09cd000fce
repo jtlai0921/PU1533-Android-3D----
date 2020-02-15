@@ -1,0 +1,788 @@
+package lwz.com.Tempcn;
+
+import static lwz.com.Tempcn.TempBullet.*;
+import static lwz.com.cn.Bullet.tankeflag2;
+import static lwz.com.cn.Constant.*;
+import static lwz.com.cn.Tank4Activity.*;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Set;
+
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+
+import lwz.com.brokenLine.BrokenLines;
+
+import lwz.com.Object.BulletTextureByVertex;
+import lwz.com.Object.Floor;
+import lwz.com.Object.HighWall;
+import lwz.com.Object.LowWall;
+import lwz.com.Object.MiddleWall;
+import lwz.com.Object.TextureRect;
+import lwz.com.Util.BNPoint;
+import lwz.com.Util.LoadUtil;
+import lwz.com.Util.LoadedObjectVertexNormalTexture;
+import lwz.com.cn.Bullet;
+import lwz.com.cn.BulletGoThread;
+import lwz.com.cn.R;
+import lwz.com.cn.Tank4Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.opengl.GLSurfaceView;
+import android.opengl.GLU;
+import android.opengl.GLUtils;
+import android.view.MotionEvent;
+
+public class OtherSurfaceView extends GLSurfaceView
+{
+	Tank4Activity activity;
+	BulletGoThread bgt;//定時搬移炮彈的執行緒
+//	TempBulletGoThread bgt;//定時搬移炮彈的執行緒
+	TempBulletGoThread tempbgt;//定時搬移炮彈的執行緒
+	private SceneRenderer mRenderer;//場景著色器
+	 
+	 public int floorTexId;//地板紋理ID
+	 public int wallTexId;//牆紋理ID
+	 public int tank1Id;//坦克紋理ID
+	 public int tank2Id;//坦克紋理ID
+	 public int bulletId;//子彈紋理ID
+	 public int tailId;//子彈尾巴紋理ID
+	 int[] exploTextureId=new int[33];//爆炸紋理群組
+	 public int yaoganTextureId1;//搖桿1
+	 public int yaoganTextureId2;//搖桿2
+	 float screenWidth;//螢幕寬度
+	 float screenHeight;//螢幕高度
+	 
+	//坦克1搬移的步徑
+	 public static float bx=0;
+	 public static float by=0;
+	 //坦克2搬移的步徑
+	 public static float tempbx=0;
+	 public static float tempby=0;
+	//坦克1的起始位置
+	 public static float Tank1_x=0;
+//	 float Tank1_y=(mapdata[2][1]+1f)*Wall_UNIT_SIZE+20;
+	 public static float Tank1_y=-100;
+	//坦克2的起始位置
+	 public static float Tank2_x=0;
+	 public static float Tank2_y=100;
+	 //存放點的HashMap
+	 HashMap<Integer,BNPoint> hm=new HashMap<Integer,BNPoint>();
+	 //建立一個BNPoint
+	 BNPoint bp;
+	 static int countl=0;
+	 //坦克每框搬移的步徑
+	 float hd_x;
+	 float hd_y;
+	 //坦克偏轉角度
+	 float vAngle;
+	 //炮管偏轉角度
+	 float pAngle;
+	 //搖桿偏移量
+	 float scale_x;
+	 float scale_y;	 
+	 public ArrayList<Bullet> bulletAl=new ArrayList<Bullet>();
+	 public   ArrayList<BrokenLines> tailAl=new ArrayList<BrokenLines>();//炮彈清單
+	 public ArrayList<TempBullet> tempbulletAl=new ArrayList<TempBullet>();//炮彈清單
+	//子彈發射標志位
+	 public int bulletflag=0;
+	 //子彈的數量
+	 public static int bulletCount=0;
+	 
+	 public OtherSurfaceView(Tank4Activity activity) {
+		super(activity);
+		this.activity=activity;
+		this.getHolder().addCallback(this);
+		mRenderer=new SceneRenderer();
+		setRenderer(mRenderer);
+		setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+		
+		tempbgt=new TempBulletGoThread(tempbulletAl);//建立定時搬移炮彈的執行緒
+		tempbgt.start();//啟動此執行緒
+        
+		bgt=new BulletGoThread(bulletAl);//建立定時搬移炮彈的執行緒
+		bgt.start();//啟動此執行緒
+		if(tempbulletflag==1)
+		{
+			this.fire2();
+		}
+		
+		
+	}
+	 
+	//觸摸事件回調方法
+	    @Override 
+	    public boolean onTouchEvent(MotionEvent e) 
+	    {	
+	    	bulletflag=0;
+	    	//宣告多點觸控
+	    	int action=e.getAction()&MotionEvent.ACTION_MASK;
+	    	int id=(e.getAction()&MotionEvent.ACTION_POINTER_ID_MASK)>>>MotionEvent.ACTION_POINTER_ID_SHIFT;	
+	        switch (action)
+	        {
+	        	case MotionEvent.ACTION_DOWN: //主點down 
+	        		System.out.println(e.getX()+"====================="+e.getY());
+	        		hm.put(id, new BNPoint(e.getX(id),e.getY(id),countl++));
+	        		break;
+	        	case MotionEvent.ACTION_POINTER_DOWN: //輔點down	
+	        		if(id<e.getPointerCount()-1)
+					{
+						//將編號往後順（相當於給點排序）
+						HashMap<Integer,BNPoint> hmTemp=new HashMap<Integer,BNPoint>();
+						Set<Integer> ks=hm.keySet();
+						for(int i:ks)
+						{
+							if(i<id)
+							{
+								hmTemp.put(i, hm.get(i));
+							}
+							else
+							{
+								hmTemp.put(i+1, hm.get(i));
+							}
+						}
+						hm=hmTemp;					
+					}
+	        		hm.put(id, new BNPoint(e.getX(id),e.getY(id),countl++)); 
+	    			break;
+	        	case MotionEvent.ACTION_MOVE: //主/輔點move  
+					//不論主/輔點Move都更新其位置
+					Set<Integer> ks=hm.keySet();
+					for(int i:ks)
+					{
+						hm.get(i).setLocation(e.getX(i), e.getY(i));					
+					}
+				break;
+	        	case MotionEvent.ACTION_UP: //主點up
+					//在本套用中主點UP則只需要清理Map即可，在其他一些套用中需要動作的
+					//則取出Map中唯一剩下的點動作即可
+	        		if(hm.get(id).gettouchflag()==2)
+					{
+	        			if(bulletCount<=3)
+	        			{
+	        				bulletCount++;
+	        				this.fire();
+	        				bulletflag=1;
+	        			}
+					}
+	        		hm.clear();
+					countl=0;
+				break;
+				case MotionEvent.ACTION_POINTER_UP: //輔點up	
+					//從Map中移除對應id的輔點
+					if(hm.get(id).gettouchflag()==2)
+					{
+						if(bulletCount<=3)
+						{
+							bulletCount++;
+							this.fire();
+							bulletflag=1;
+						}
+					}
+					hm.remove(id);
+					//將編號往前順，不空著
+					HashMap<Integer,BNPoint> hmTemp=new HashMap<Integer,BNPoint>();
+					ks=hm.keySet();
+					for(int i:ks)
+					{
+						if(i>id)
+						{
+							hmTemp.put(i-1, hm.get(i));
+						}
+						else
+						{
+							hmTemp.put(i, hm.get(i));
+						}
+					}
+					hm=hmTemp;
+				break;
+	        }   
+	        
+	        
+	      //起始化坦克和搖桿的偏移量
+            hd_x=0;
+			hd_y=0;
+			scale_x=0;
+			scale_y=0;
+            //取得map的鍵值
+            Set<Integer> ks=hm.keySet();
+            //強制循環鍵值
+			for(int i:ks)
+			{
+				bp=hm.get(i);
+				if(bp.gettouchflag()==1)
+				{//取得坦克偏移量，坦克偏轉角度，搖桿偏移量
+					hd_x=bp.gethd_x();
+					hd_y=bp.gethd_y();
+					vAngle=bp.getvAngle();
+					scale_x=bp.getscale_x();
+					scale_y=bp.getscale_y();
+				}
+				if(bp.gettouchflag()==2)
+				{//取得炮管的偏轉角度
+					pAngle=bp.getpAngle();
+				}
+			}
+	        activity.sendMessage(vAngle+"  "+pAngle+"  "+hd_x+"  "+hd_y+"  "+bulletflag+"  ");
+//	        if(tempbulletflag1==1)
+//	         {
+//	         	this.fire2();
+//	         }   
+			return true;
+	    }
+	 
+	 private class SceneRenderer implements GLSurfaceView.Renderer
+	 {
+		//起始化地板
+		 Floor floor;
+		//起始化牆
+		LowWall lowwall;
+		MiddleWall middlewall;
+		HighWall highwall;
+		//起始化子彈
+		BulletTextureByVertex bullet;
+		//爆炸動畫
+		TextureRect[] trExplo=new TextureRect[33];
+		TextureRect yaoganButton1;//搖桿按鈕1
+		TextureRect yaoganButton2;//搖桿按鈕2
+		TextureRect suspend;//暫停
+		TextureRect tanklife1;//坦克生命1
+		TextureRect tanklife1_1;//坦克生命1
+		TextureRect tanklife2;//坦克生命2
+		TextureRect tanklife2_1;//坦克生命2
+		TextureRect tanklife3;//坦克生命3
+		TextureRect tanklife3_1;//坦克生命2
+		//從特殊的obj檔案中載入物件
+		LoadedObjectVertexNormalTexture lovn1;
+		LoadedObjectVertexNormalTexture lovn2;
+		
+		LoadedObjectVertexNormalTexture lovn3;
+		LoadedObjectVertexNormalTexture lovn4;
+		
+		public void onDrawFrame(GL10 gl) {
+        	//清除彩色快取
+        	gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+        	//設定目前矩陣為模式矩陣
+            gl.glMatrixMode(GL10.GL_MODELVIEW);
+            //設定目前矩陣為單位矩陣
+            gl.glLoadIdentity();  
+			//繪制攝影機
+//            GLU.gluLookAt
+//            (
+//            		gl, 
+//            		//0,-57f,100f,
+//            		//0,0,100f,
+//            		bx,by+(lowWallmapdata[0][1]-0.5f)*Wall_UNIT_SIZE-20,200f,
+//            		bx,by+(lowWallmapdata[0][1]-0.5f)*Wall_UNIT_SIZE-20,0,
+//            		0,5,0	
+//            );  
+            
+            GLU.gluLookAt
+            (
+            		gl, 
+//            		bx,by-57f,200f,
+//            		bx,by,0f,
+            		0,0,200f,
+            		0,0,0,
+            		0,4,1	
+            );  
+            //繪制地板
+            gl.glPushMatrix();
+            gl.glTranslatef(0, 0, -100f);  
+            floor.drawSelf(gl);
+            gl.glPopMatrix();
+            
+            //繪制牆
+            gl.glPushMatrix();
+            gl.glTranslatef(0, 0f, -100f); 
+            lowwall.drawSelf(gl);
+            gl.glPopMatrix();
+            //繪制牆
+            gl.glPushMatrix();
+            gl.glTranslatef(0, 0f, -100f); 
+            middlewall.drawSelf(gl);
+            gl.glPopMatrix();
+            //繪制牆
+            gl.glPushMatrix();
+            gl.glTranslatef(0, 0f, -100f); 
+            highwall.drawSelf(gl);
+            gl.glPopMatrix();
+            
+          //繪制暫停
+            gl.glPushMatrix();
+            gl.glTranslatef(210f, -110f, -1f); 
+            suspend.drawSelf(gl);
+            gl.glPopMatrix();
+            
+            //繪制坦克生命圖示
+            gl.glPushMatrix();
+            gl.glTranslatef(120, 110f, -1f); 
+            if(tankeflag2>0)
+            {
+            	tanklife1_1.drawSelf(gl);
+            }
+            else
+            {
+            	tanklife1.drawSelf(gl);
+            }
+            gl.glPopMatrix();
+            gl.glPushMatrix();
+            gl.glTranslatef(160, 110f, -1f); 
+            if(tankeflag2>1)
+            {
+            	tanklife2_1.drawSelf(gl);
+            }
+            else
+            {
+            	tanklife2.drawSelf(gl);
+            }
+            gl.glPopMatrix();
+            gl.glPushMatrix();
+            gl.glTranslatef(200, 110f, -1f); 
+            if(tankeflag2>2)
+            {
+            	tanklife3_1.drawSelf(gl);
+            }
+            else
+            {
+            	tanklife3.drawSelf(gl);
+            }
+            gl.glPopMatrix();
+			
+			bx=bx+hd_x;//坦克2每框變換的x座標
+			by=by+hd_y;//坦克2每框變換的y座標
+			//取得矮牆陣列的長度
+			int rows=lowWallmapdata.length;
+			//對陣列進行循環做碰撞檢驗
+			for(int i=0;i<rows;i++)
+			{	
+				if(bx>lowWallmapdata[i][0]*Wall_UNIT_SIZE-20f-Tank2_x&&bx<(lowWallmapdata[i][0]+lowWallmapdata[i][3])*Wall_UNIT_SIZE+20f-Tank2_x&&by<lowWallmapdata[i][1]*Wall_UNIT_SIZE+20f-Tank2_y&&by>(lowWallmapdata[i][1]-lowWallmapdata[i][4])*Wall_UNIT_SIZE-20f-Tank2_y)
+				{
+					if(bx-hd_x>lowWallmapdata[i][0]*Wall_UNIT_SIZE-20f-Tank2_x&&bx-hd_x<(lowWallmapdata[i][0]+lowWallmapdata[i][3])*Wall_UNIT_SIZE+20f-Tank2_x)	
+					{
+						by=by-hd_y;
+					}
+					else
+					{
+						bx=bx-hd_x;
+					}
+				}
+			}
+			//繪制坦克2
+			if(lovn3!=null)
+            {
+            	gl.glPushMatrix();
+            	gl.glTranslatef(Tank2_x+bx, Tank2_y+by, -100);
+            	gl.glRotatef(90,1, 0, 0);       	          
+            	gl.glRotatef(vAngle,0, 1, 0);       
+            	lovn3.drawSelf(gl);
+            	gl.glPopMatrix();	
+            } 
+            if(lovn4!=null)
+            {
+            	gl.glPushMatrix();
+            	gl.glTranslatef(Tank2_x+bx, Tank2_y+by, -84);       
+            	gl.glRotatef(90,1,0, 0);
+            	gl.glRotatef(pAngle,0,1,0);       
+            	lovn4.drawSelf(gl);
+            	gl.glPopMatrix();
+            }
+          //坦克1每框的搬移步徑
+            tempbx=tempbx+temphd_x;
+			tempby=tempby+temphd_y;
+			//對陣列進行循環做碰撞檢驗
+			for(int i=0;i<rows;i++)
+			{	
+				if(tempbx>lowWallmapdata[i][0]*Wall_UNIT_SIZE-20f-Tank1_x&&tempbx<(lowWallmapdata[i][0]+lowWallmapdata[i][3])*Wall_UNIT_SIZE+20f-Tank1_x&&tempby<lowWallmapdata[i][1]*Wall_UNIT_SIZE+20f-Tank1_y&&tempby>(lowWallmapdata[i][1]-lowWallmapdata[i][4])*Wall_UNIT_SIZE-20f-Tank1_y)
+				{
+					if(tempbx-temphd_x>lowWallmapdata[i][0]*Wall_UNIT_SIZE-20f-Tank1_x&&tempbx-temphd_x<(lowWallmapdata[i][0]+lowWallmapdata[i][3])*Wall_UNIT_SIZE+20f-Tank1_x)	
+					{
+						tempby=tempby-temphd_y;
+					}
+					else
+					{
+						tempbx=tempbx-temphd_x;
+					}
+				}
+			}
+         //若載入的物體部位空則繪制物體           
+        	   if(lovn1!=null)
+               {
+               	gl.glPushMatrix();
+               	gl.glTranslatef(tempbx+Tank1_x, tempby+Tank1_y, -100);
+               	gl.glRotatef(90,1, 0, 0);       	          
+               	gl.glRotatef(tempvAngle,0, 1, 0);       
+               	lovn1.drawSelf(gl);
+               	gl.glPopMatrix();	
+               } 
+               if(lovn2!=null)
+               {
+               	gl.glPushMatrix();
+               	gl.glTranslatef(tempbx+Tank1_x, tempby+Tank1_y, -84);       
+               	gl.glRotatef(90,1,0, 0);
+               	gl.glRotatef(temppAngle,0,1,0);       
+               	lovn2.drawSelf(gl);
+               	gl.glPopMatrix();
+               } 
+          
+            try
+            {
+            	//繪制炮彈
+                for(TempBullet b:tempbulletAl)
+                {
+                	b.drawSelf(gl);
+                }
+            }
+            catch(Exception e)
+            {
+            	e.printStackTrace();
+            }
+            
+           try
+            {
+            	//繪制尾巴
+                for(BrokenLines bkl:tailAl)
+                {
+                	gl.glPushMatrix();//保護現場              
+              	    gl.glTranslatef(0,0,-84);//搬移到指定位置 
+              	   //gl.glTranslatef(0, 0, bkl.tbl.cuerrentZ); 
+              	   // gl.glTranslatef(Tank2_x+bx, Tank2_y+by, -100);
+                	bkl.drawSelf(tailId, gl);
+                    gl.glPopMatrix();
+                }
+            }
+            catch(Exception e)
+            {
+            	e.printStackTrace();
+            }
+           
+            if(tempanmiStart)
+            {
+   			 if(tempanmiIndex<trExplo.length-1)
+   		    	{//動畫沒有播放完動畫換框
+   				tempanmiIndex=tempanmiIndex+1;
+   		    	}
+   		 	}  
+            
+            //繪制爆炸紋理
+            if(tempanmiStart)
+	    	{//動畫沒有播放完動畫換框
+            	gl.glPushMatrix();//保護現場
+				gl.glTranslatef(tempanmiX,tempanmiY , -84);//搬移到指定位置
+				trExplo[tempanmiIndex].drawSelf(gl);//繪制爆炸動畫目前框
+				gl.glPopMatrix();
+	    	}
+            //繪制搖桿中心原片
+            gl.glPushMatrix();            
+            //設定目前矩陣為模式矩陣
+            gl.glMatrixMode(GL10.GL_MODELVIEW);
+            //設定目前矩陣為單位矩陣 
+            gl.glLoadIdentity(); 
+            gl.glPushMatrix(); 
+            gl.glTranslatef(-4.58f+scale_x*0.5f, -1.95f+scale_y*0.5f, -5f); // paid
+//            gl.glTranslatef(-3.58f+scale_x*0.5f, -1.35f+scale_y*0.5f, -4f); // 手機
+            yaoganButton2.drawSelf(gl);
+            gl.glPopMatrix();
+            gl.glPopMatrix();
+            
+            //繪制搖桿背景
+            gl.glPushMatrix();            
+            //設定目前矩陣為模式矩陣
+            gl.glMatrixMode(GL10.GL_MODELVIEW);
+            //設定目前矩陣為單位矩陣
+            gl.glLoadIdentity(); 
+            gl.glPushMatrix(); 
+            gl.glTranslatef(-2.3f, -1f, -2.5f);  // paid
+//            gl.glTranslatef(-1.8f, -0.7f, -2f);  // 手機
+            yaoganButton1.drawSelf(gl);
+            gl.glPopMatrix();
+            gl.glPopMatrix();
+		}
+
+		public void onSurfaceChanged(GL10 gl, int width, int height) {
+			//設定視窗大小及位置 
+			gl.glViewport(ssr.lucX,ssr.lucY, (int)(SCREEN_WIDTH_STANDARD*ssr.ratio), (int)(SCREEN_HEIGHT_STANDARD*ssr.ratio));
+        	//設定目前矩陣為投影矩陣
+            gl.glMatrixMode(GL10.GL_PROJECTION);
+            //設定目前矩陣為單位矩陣
+            gl.glLoadIdentity();
+            //計算透視投影的比例
+            float ratio = RATIO;
+            //呼叫此方法計算產生透視投影矩陣
+            gl.glFrustumf(-ratio, ratio, -1, 1, 1.5f, 400);
+		}
+
+		public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+			//關閉抗抖動 
+        	gl.glDisable(GL10.GL_DITHER);
+        	//設定特定Hint專案的模式，這裡為設定為使用快速模式
+            gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,GL10.GL_FASTEST);
+            //設定螢幕背景色黑色RGBA
+            gl.glClearColor(0,0,0,0);
+            //開啟背面剪裁
+            gl.glEnable(GL10.GL_CULL_FACE);
+            //開啟混合   
+            gl.glEnable(GL10.GL_BLEND); 
+            //設定源混合因子與目的混合因子
+            gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+            //設定著色模型為平順著色   
+            gl.glShadeModel(GL10.GL_SMOOTH);//GL10.GL_SMOOTH  GL10.GL_FLAT
+            //啟用深度測試
+            gl.glEnable(GL10.GL_DEPTH_TEST);
+            //起始化燈光
+    		initLight(gl);
+            //起始化材質
+            initMaterial(gl);
+            //容許光源       
+            gl.glEnable(GL10.GL_LIGHTING);
+            //設定光線方向
+//            float[] positionParamsGreen={-80,80,80,1};//最後的0表示是定位光
+//            float[] positionParamsGreen={0,0,90,1};//最後的0表示是定位光
+            float[] directionParams={0,0,1,0};//最後的0表示是定位光
+            gl.glLightfv(GL10.GL_LIGHT0, GL10.GL_POSITION, directionParams,0); 
+    
+			
+          //起始化地板紋理
+            floorTexId=initTexture(gl,R.drawable.floor1);
+            //起始化牆紋理
+            wallTexId=initTexture(gl,R.drawable.wall);
+            //起始化坦克1紋理
+            tank1Id=initTexture(gl,R.drawable.mini); 
+            //起始化坦克2紋理
+            tank2Id=initTexture(gl,R.drawable.mini1);  
+            //起始化搖桿紋理
+            yaoganTextureId1=initTexture(gl,R.drawable.yaogan1);
+            yaoganTextureId2=initTexture(gl,R.drawable.yaogan2);
+            //起始化子彈紋理
+            bulletId=initTexture(gl,R.drawable.wall);  
+            //起始化尾巴紋理
+            tailId=initTexture(gl,R.drawable.weiba);
+            //起始化爆炸紋理
+            exploTextureId[0]=initTexture(gl,R.drawable.explode1);  
+            exploTextureId[1]=initTexture(gl,R.drawable.explode2);  
+            exploTextureId[2]=initTexture(gl,R.drawable.explode3);  
+            exploTextureId[3]=initTexture(gl,R.drawable.explode4);  
+            exploTextureId[4]=initTexture(gl,R.drawable.explode5);  
+            exploTextureId[5]=initTexture(gl,R.drawable.explode6); 
+            exploTextureId[6]=initTexture(gl,R.drawable.explode7);  
+            exploTextureId[7]=initTexture(gl,R.drawable.explode8);  
+            exploTextureId[8]=initTexture(gl,R.drawable.explode9);  
+            exploTextureId[9]=initTexture(gl,R.drawable.explode10);  
+            exploTextureId[10]=initTexture(gl,R.drawable.explode11);  
+            exploTextureId[11]=initTexture(gl,R.drawable.explode12); 
+            exploTextureId[12]=initTexture(gl,R.drawable.explode13);  
+            exploTextureId[13]=initTexture(gl,R.drawable.explode14);  
+            exploTextureId[14]=initTexture(gl,R.drawable.explode15);  
+            exploTextureId[15]=initTexture(gl,R.drawable.explode16);  
+            exploTextureId[16]=initTexture(gl,R.drawable.explode17);  
+            exploTextureId[17]=initTexture(gl,R.drawable.explode18); 
+            exploTextureId[18]=initTexture(gl,R.drawable.explode19);  
+            exploTextureId[19]=initTexture(gl,R.drawable.explode20);  
+            exploTextureId[20]=initTexture(gl,R.drawable.explode21);  
+            exploTextureId[21]=initTexture(gl,R.drawable.explode22);  
+            exploTextureId[22]=initTexture(gl,R.drawable.explode23);  
+            exploTextureId[23]=initTexture(gl,R.drawable.explode24); 
+            exploTextureId[24]=initTexture(gl,R.drawable.explode25);  
+            exploTextureId[25]=initTexture(gl,R.drawable.explode26);  
+            exploTextureId[26]=initTexture(gl,R.drawable.explode27);  
+            exploTextureId[27]=initTexture(gl,R.drawable.explode28);  
+            exploTextureId[28]=initTexture(gl,R.drawable.explode29);  
+            exploTextureId[29]=initTexture(gl,R.drawable.explode30); 
+            exploTextureId[30]=initTexture(gl,R.drawable.explode31);  
+            exploTextureId[31]=initTexture(gl,R.drawable.explode32);  
+            exploTextureId[32]=initTexture(gl,R.drawable.explode33);  
+            
+            //繪制地板
+            floor=new Floor(-3f,2f,6f,4f,0, floorTexId);
+            //繪制矮牆
+            lowwall=new LowWall(wallTexId);
+            //繪制中牆
+            middlewall=new MiddleWall(wallTexId);
+            //繪制高牆
+            highwall=new HighWall(wallTexId);
+            //繪制子彈模型
+            bullet=new BulletTextureByVertex(3,9,18,bulletId);
+            //坦克炮身
+            lovn1=LoadUtil.loadFromFileVertexOnly
+                    (
+                   		 "tank_body.obj", 
+                   		OtherSurfaceView.this.getResources(),
+                   		tank1Id
+                    );
+            //坦克炮管
+            lovn2=LoadUtil.loadFromFileVertexOnly
+                    (
+                    	"tank_berral1.obj", 
+                    	OtherSurfaceView.this.getResources(),
+                    	tank1Id
+                    );
+            //坦克炮身
+            lovn3=LoadUtil.loadFromFileVertexOnly
+                    (
+                   		 "tank_body.obj", 
+                   		OtherSurfaceView.this.getResources(),
+                   		tank2Id
+                    );
+            //坦克炮管
+            lovn4=LoadUtil.loadFromFileVertexOnly
+                    (
+                    	"tank_berral1.obj", 
+                    	OtherSurfaceView.this.getResources(),
+                    	tank2Id
+                    );
+            //建立搖桿
+            yaoganButton1=new TextureRect(yaoganTextureId1,0.12f,0.12f,1,1);
+            yaoganButton2=new TextureRect(yaoganTextureId2,0.12f,0.12f,1,1);
+            //建立爆炸動畫群組成框
+            trExplo[0]=new TextureRect(exploTextureId[0],6f,6f,1,1);
+            trExplo[1]=new TextureRect(exploTextureId[1],6f,6f,1,1);
+            trExplo[2]=new TextureRect(exploTextureId[2],6f,6f,1,1);
+            trExplo[3]=new TextureRect(exploTextureId[3],6f,6f,1,1);
+            trExplo[4]=new TextureRect(exploTextureId[4],6f,6f,1,1);
+            trExplo[5]=new TextureRect(exploTextureId[5],6f,6f,1,1);
+            trExplo[6]=new TextureRect(exploTextureId[6],6f,6f,1,1);
+            trExplo[7]=new TextureRect(exploTextureId[7],6f,6f,1,1);
+            trExplo[8]=new TextureRect(exploTextureId[8],6f,6f,1,1);
+            trExplo[9]=new TextureRect(exploTextureId[9],6f,6f,1,1);
+            trExplo[10]=new TextureRect(exploTextureId[10],6f,6f,1,1);
+            trExplo[11]=new TextureRect(exploTextureId[11],6f,6f,1,1);
+            trExplo[12]=new TextureRect(exploTextureId[12],6f,6f,1,1);
+            trExplo[13]=new TextureRect(exploTextureId[13],6f,6f,1,1);
+            trExplo[14]=new TextureRect(exploTextureId[14],6f,6f,1,1);
+            trExplo[15]=new TextureRect(exploTextureId[15],6f,6f,1,1);
+            trExplo[16]=new TextureRect(exploTextureId[16],6f,6f,1,1);
+            trExplo[17]=new TextureRect(exploTextureId[17],6f,6f,1,1);
+            trExplo[18]=new TextureRect(exploTextureId[18],6f,6f,1,1);
+            trExplo[19]=new TextureRect(exploTextureId[19],6f,6f,1,1);
+            trExplo[20]=new TextureRect(exploTextureId[20],6f,6f,1,1);
+            trExplo[21]=new TextureRect(exploTextureId[21],6f,6f,1,1);
+            trExplo[22]=new TextureRect(exploTextureId[22],6f,6f,1,1);
+            trExplo[23]=new TextureRect(exploTextureId[23],6f,6f,1,1);
+            trExplo[24]=new TextureRect(exploTextureId[24],6f,6f,1,1);
+            trExplo[25]=new TextureRect(exploTextureId[25],6f,6f,1,1);
+            trExplo[26]=new TextureRect(exploTextureId[26],6f,6f,1,1);
+            trExplo[27]=new TextureRect(exploTextureId[27],6f,6f,1,1);
+            trExplo[28]=new TextureRect(exploTextureId[28],6f,6f,1,1);
+            trExplo[29]=new TextureRect(exploTextureId[29],6f,6f,1,1);
+            trExplo[30]=new TextureRect(exploTextureId[30],6f,6f,1,1);
+            trExplo[31]=new TextureRect(exploTextureId[31],6f,6f,1,1);
+            trExplo[32]=new TextureRect(exploTextureId[32],6f,6f,1,1);
+		}
+		 
+	 }
+	 private void initLight(GL10 gl)
+		{
+	        gl.glEnable(GL10.GL_LIGHT0);//開啟0號燈  
+	        
+	        //環境光設定
+	        float[] ambientParams={0.2f,0.2f,0.2f,1.0f};//光參數 RGBA
+	        gl.glLightfv(GL10.GL_LIGHT0, GL10.GL_AMBIENT, ambientParams,0);            
+
+	        //散射光設定
+	        float[] diffuseParams={1f,1f,1f,1.0f};//光參數 RGBA
+	        gl.glLightfv(GL10.GL_LIGHT0, GL10.GL_DIFFUSE, diffuseParams,0); 
+	        
+	        //反射光設定
+	        float[] specularParams={0.1f,0.1f,0.1f,1.0f};//光參數 RGBA
+	        gl.glLightfv(GL10.GL_LIGHT0, GL10.GL_SPECULAR, specularParams,0);     
+		}
+		
+		private void initMaterial(GL10 gl)
+		{//材質為白色時什麼彩色的光源在上面就將表現出什麼彩色
+	        //環境光為白色材質
+	        float ambientMaterial[] = {0.4f, 0.4f, 0.4f, 1.0f};
+	        gl.glMaterialfv(GL10.GL_FRONT_AND_BACK, GL10.GL_AMBIENT, ambientMaterial,0);
+	        //散射光為白色材質
+	        float diffuseMaterial[] = {1f, 1f, 1f, 1.0f};
+	        gl.glMaterialfv(GL10.GL_FRONT_AND_BACK, GL10.GL_DIFFUSE, diffuseMaterial,0);
+	        //高光材質為白色
+	        float specularMaterial[] = {0.5f, 0.5f, 0.5f, 1.0f};
+	        gl.glMaterialfv(GL10.GL_FRONT_AND_BACK, GL10.GL_SPECULAR, specularMaterial,0);
+	        //高光反射區域,數越大反白區域越小越暗
+	        float shininessMaterial[] = {0.5f};
+	        gl.glMaterialfv(GL10.GL_FRONT_AND_BACK, GL10.GL_SHININESS, shininessMaterial,0);
+		}
+	 public int initTexture(GL10 gl,int drawableId)
+		{
+		//產生紋理ID
+			int[] textures = new int[1];
+			gl.glGenTextures(1, textures, 0);    
+			int currTextureId=textures[0];    
+			gl.glBindTexture(GL10.GL_TEXTURE_2D, currTextureId);
+			gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER,GL10.GL_NEAREST);
+	        gl.glTexParameterf(GL10.GL_TEXTURE_2D,GL10.GL_TEXTURE_MAG_FILTER,GL10.GL_LINEAR);
+	        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_WRAP_S,GL10.GL_CLAMP_TO_EDGE);
+	        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_WRAP_T,GL10.GL_CLAMP_TO_EDGE);
+	        
+	        //設定目前紋理的映射模式
+	        //gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE,GL10.GL_REPLACE);
+	        //gl.glTexEnvx(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE,GL10.GL_MODULATE); 
+	        //gl.glTexEnvx(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE,GL10.GL_BLEND);
+	        
+	        //透過輸入流載入圖片===============begin===================
+	        InputStream is = this.getResources().openRawResource(drawableId);
+	        Bitmap bitmapTmp; 
+	        try 
+	        {
+	        	bitmapTmp = BitmapFactory.decodeStream(is);
+	        } 
+	        finally 
+	        {
+	            try 
+	            {
+	                is.close();
+	            } 
+	            catch(IOException e) 
+	            {
+	                e.printStackTrace();
+	            }
+	        }
+	        GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmapTmp, 0);
+	        bitmapTmp.recycle(); 
+	        
+	        return currTextureId; 
+		}
+	 public void fire()
+	 {
+		 
+		 float startAngle=-pAngle;
+		 float startX=bx+Tank2_x+(float) (20*Math.sin(Math.toRadians(startAngle)));
+		 float startY=by+Tank2_y+(float) (20*Math.cos(Math.toRadians(startAngle)));
+		 float startZ=-84;
+		 
+		 float vx=(float) (BULLET_V*Math.sin(Math.toRadians(startAngle)));
+		 float vy=(float) (BULLET_V*Math.cos(Math.toRadians(startAngle)));
+		 float vz=0;
+		 TempBullet tbl= new TempBullet(mRenderer.bullet,startX,startY,startZ,vx,vy,vz,mRenderer.trExplo,startAngle,this);
+		 tempbulletAl.add(
+				 tbl
+				 );
+		 float bbx=(float) (Math.sin(Math.toRadians(startAngle)));
+		 float bby=(float) (Math.cos(Math.toRadians(startAngle)));
+		 tailAl.add(new BrokenLines(this,tbl,new float []{startX,startY,-84}, new float []{bbx,bby,0})); 
+		 
+		 
+	 }
+	 public void fire2()
+	 {
+		 
+		 float tempstartAngle=-temppAngle;
+		 float tempstartX=Tank1_x+tempbx+(float) (15*Math.sin(Math.toRadians(tempstartAngle)));
+		 float tempstartY=Tank1_y+tempby+(float) (15*Math.cos(Math.toRadians(tempstartAngle)));
+		 float tempstartZ=-84;
+		 
+		 float tempvx=(float) (BULLET_V*Math.sin(Math.toRadians(tempstartAngle)));
+		 float tempvy=(float) (BULLET_V*Math.cos(Math.toRadians(tempstartAngle)));
+		 float tempvz=0;
+		 Bullet tbl= new Bullet(mRenderer.bullet,tempstartX,tempstartY,tempstartZ,tempvx,tempvy,tempvz,mRenderer.trExplo,tempstartAngle,this);
+		 bulletAl.add(
+				 tbl
+				 );
+		 float bbx=(float) (Math.sin(Math.toRadians(tempstartAngle)));
+		 float bby=(float) (Math.cos(Math.toRadians(tempstartAngle)));
+//		 tailAl.add(new BrokenLines(this,tbl,new float []{tempstartX,tempstartY,-84}, new float []{bbx,bby,0})); 
+	 }
+}

@@ -1,0 +1,448 @@
+package lwz.com.cn;
+
+
+import lwz.com.Bluetooth.MyDeviceListActivity;
+import static lwz.com.cn.Constant.*;
+import lwz.com.Bluetooth.MyService;
+import lwz.com.Tempcn.OtherSurfaceView;
+import lwz.com.View.BlueView;
+import lwz.com.View.HelpView;
+import lwz.com.View.MainView;
+import lwz.com.View.ModelView;
+import lwz.com.View.SettingView;
+import lwz.com.View.SoundUtil;
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Vibrator;
+import android.util.DisplayMetrics;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.Toast;
+
+public class Tank4Activity extends Activity {
+    /** Called when the activity is first created. */
+	private String connectedNameStr = null;// 已連線的裝置名稱
+	private BluetoothAdapter btAdapter = null;// 本機藍芽介面卡
+	private MyService myService = null;// Service參考
+	public Vibrator vibrator;//震動
+	
+    private MySurfaceView mGLSurfaceView;//宣告MySurfaceView
+    private OtherSurfaceView oGLSurfaceView;//宣告OtherSurfaceView
+    public static int GLSurfaceViewglag=0;//跳躍界面標志位
+    
+    private static final int REQUEST_ENABLE_BT = 3;
+	static boolean search = false;
+    int countKey=0;
+	WhichView curr;
+	//主界面
+	MainView mainview;
+	//模式界面
+	ModelView modelview;
+	//設定界面
+	SettingView settingview;
+	//藍芽界面
+	BlueView blueview;
+	//幫助界面
+	HelpView helpview;
+	//螢幕的長度與寬度
+    public static float screenWidth;
+	public static float screenHeight;
+	//螢幕像素的縮放比
+	public static float scaleratiox=1;
+	public static float scaleratioY=1;
+	//背景音樂標志位
+	public boolean playbackmusic=false;
+	//宣告音效工具類別
+	public SoundUtil soundutil;
+	//起始化系統儲存與讀取工具
+	public SharedPreferences sp;
+	public SharedPreferences.Editor editor;
+    //宣告透過藍芽接收來的資料
+    public static float tempvAngle;
+	public static float temppAngle;
+	public static float temphd_x;
+	public static float temphd_y;
+	public static int tempbulletflag;
+	public static int tempbulletflag2;
+	
+	//宣告Handler
+	public Handler hd=new Handler()
+	{
+		public void handleMessage(Message msg)
+		{
+			switch(msg.what)
+			{
+			case 0:
+				gotoMainView();
+				break;
+			case 1:
+				gotoSettingView();
+				break;
+			case 2:
+				gotoModelView();
+				break;
+			case 3:
+				gotoBlueView();
+				break;
+			case 4:
+				openblue();
+				break;
+			case 5:
+				discovery();
+				break;
+			case 6:
+				gotoHelpView();
+				break;
+			}
+		}
+	};
+	@Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+      //設定全螢幕
+        requestWindowFeature(Window.FEATURE_NO_TITLE); 
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN ,  
+		              WindowManager.LayoutParams.FLAG_FULLSCREEN);  
+		//設定橫屏
+		this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		//取得螢幕尺寸
+        DisplayMetrics dm=new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm); 
+        //取得螢幕的解析度
+        screenWidth=dm.widthPixels;			
+		screenHeight=dm.heightPixels;
+		//與標准像素的縮放比
+		scaleratiox=screenWidth/540;
+        scaleratioY=screenHeight/960;
+        if(dm.widthPixels>dm.heightPixels)
+        {
+        	 SCREEN_WIDTH=dm.widthPixels;
+             SCREEN_HEIGHT=dm.heightPixels;
+        }
+        else
+        {
+        	SCREEN_WIDTH=dm.heightPixels;
+            SCREEN_HEIGHT=dm.widthPixels;
+        }
+        scaleCL();//自適應螢幕方法
+        vibrator=(Vibrator)getSystemService(VIBRATOR_SERVICE);//震動的方法
+        
+//		setContentView(R.layout.main);
+	 	mGLSurfaceView = new MySurfaceView(this);
+        mGLSurfaceView.requestFocus();
+        mGLSurfaceView.setFocusableInTouchMode(true);//設定為可觸控  
+        
+        oGLSurfaceView = new OtherSurfaceView(this);
+        oGLSurfaceView.requestFocus();
+        oGLSurfaceView.setFocusableInTouchMode(true);//設定為可觸控  
+//		//宣告按鈕1並設定監聽
+//		final Button button1 = (Button) findViewById(R.id.button1); 
+//        button1.setOnClickListener(
+//           //OnClickListener為View的內定接口，其實現者負責監聽滑鼠點擊事件
+//           new View.OnClickListener()    
+//           { 
+//            public void onClick(View v) 
+//            { 
+//            	 setContentView(mGLSurfaceView);
+//            	 GLSurfaceViewglag=1;
+//            } 
+//        }); 
+//      //宣告按鈕2並設定監聽
+//        final Button button2 = (Button) findViewById(R.id.button2); 
+//        button2.setOnClickListener(
+//           //OnClickListener為View的內定接口，其實現者負責監聽滑鼠點擊事件
+//           new View.OnClickListener()    
+//           { 
+//            public void onClick(View v) 
+//            { 
+//            	 setContentView(oGLSurfaceView);
+//            	 GLSurfaceViewglag=2;
+//            } 
+//        }); 
+//      //宣告按鈕3並設定監聽
+//        final Button button3 = (Button) findViewById(R.id.button3); 
+//        button3.setOnClickListener(
+//                //OnClickListener為View的內定接口，其實現者負責監聽滑鼠點擊事件
+//                new View.OnClickListener()    
+//                { 
+//                 public void onClick(View v) 
+//                 { 
+//                	 onPrepareOptionsMenu( button3);
+//                 } 
+//             }); 
+        
+      //起始化音效控制工具類別
+        soundutil=new SoundUtil(this);
+        //起始化音效
+        soundutil.initSounds(); 
+        //起始化一個tank系統儲存檔案
+        sp=getSharedPreferences("tank",0);
+        //讀取訊息
+        editor=sp.edit();
+        playbackmusic=sp.getBoolean("playback", false);
+        if(playbackmusic)
+        {
+			soundutil.play_bg_sound();  
+        }
+        
+        hd.sendEmptyMessage(0);
+       
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (btAdapter == null) {
+            Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+	}
+	
+//	public void gotoSurfaceView()
+//	{
+//		curr=WhichView.DUOREN_VIEW;
+//		mGLSurfaceView = new MySurfaceView(this);
+//        mGLSurfaceView.requestFocus();
+//        setContentView(mGLSurfaceView);
+//        mGLSurfaceView.setFocusableInTouchMode(true);//設定為可觸控  
+//	}
+	public void gotoHelpView() {
+		curr=WhichView.HELP_VIEW;
+		helpview = new HelpView(this);
+		helpview.requestFocus();
+		setContentView(helpview);
+	}
+	
+	public void openblue() {
+		if(BlueView.blue)
+		{
+			if (!btAdapter.isEnabled()) {
+	            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+	            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+	        }
+		}else
+		{
+			btAdapter.disable();
+		}
+	}
+	
+	public void discovery() {
+		Intent discoverableIntent = new
+				Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+		discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+		startActivity(discoverableIntent);
+	}
+	
+	public void gotoBlueView() {
+		curr = WhichView.BLUE_VIEW;
+		blueview = new BlueView(this);
+		blueview.requestFocus();
+		setContentView(blueview);
+		
+	}
+		
+	public void gotoModelView() {
+		curr=WhichView.CHOSE_VIEW;
+		modelview= new ModelView(this);
+		modelview.requestFocus();
+		setContentView(modelview);
+		
+	}
+	
+	public void gotoMainView()
+	{
+		curr=WhichView.MAIN_MENU_VIEW;
+		mainview=new MainView(this);
+	    mainview.requestFocus();
+	    setContentView(mainview);
+	}
+	public void gotoSettingView()
+	{
+		curr=WhichView.Setting_VIEW;
+		settingview=new SettingView(this);
+		settingview.requestFocus();
+	    setContentView(settingview);
+	}
+//	    @Override
+//	    public boolean onCreateOptionsMenu(Menu menu) {
+//	        getMenuInflater().inflate(R.menu.activity_main, menu);
+//	        return true;
+//	    }
+	    //重新定義裝置傳回鍵的方法
+	    @Override
+	    public boolean onKeyDown(int keyCode, KeyEvent e)
+	    {
+	    	switch(keyCode)
+	    	{
+	    		case 4:
+	    			if(curr==WhichView.MAIN_MENU_VIEW)
+	    			{
+	    				if(countKey==0)
+	    	        	{
+	    	        		countKey++;
+	    	        		Toast.makeText(this, "再按一次離開游戲 ", Toast.LENGTH_LONG).show();
+	    	        		new Thread()
+	    	        		{
+	    	        			@Override 
+	    	        			public void run()
+	    	        			{
+	    	        				try
+	    	        				{
+	    	        					Thread.sleep(3000);
+	    	        					countKey=0;
+	    	        				}
+	    	        				catch(Exception e){}
+	    	        			}
+	    	        		}.start();
+	    	        	}
+	    	        	else
+	    	        	{
+	    	        		System.exit(0);
+	    	        	}
+	    			}
+	    			if(curr==WhichView.Setting_VIEW)
+	    			{
+	    				hd.sendEmptyMessage(0);
+	    				SettingView.cdraw=false;
+	    				MainView.cdraw=true;
+	    			}
+	    			if(curr==WhichView.CHOSE_VIEW)
+	    			{
+	    				hd.sendEmptyMessage(0);
+	    				ModelView.cdraw=false;
+	    				MainView.cdraw=true;
+	    			}
+	    			return true;
+	    		default:
+	    			break;
+	    	}
+	    	return super.onKeyDown(keyCode, e);
+	    }
+	    
+	@Override
+	public void onStart() {
+		super.onStart();
+		// 若果藍芽沒有開啟，提示開啟藍芽，並離開Activity
+		if (!btAdapter.isEnabled()) {
+			Toast.makeText(this, "請先開啟藍芽！", Toast.LENGTH_LONG).show();
+			finish();
+		} else {// 否則起始化聊天的控制項
+			if (myService == null)
+				myService = new MyService(this, mHandler);// 建立Service物件
+		}
+	}
+	
+    @Override 
+    protected void onPause()
+    {
+    	super.onPause();
+    	mGLSurfaceView.onPause();
+    }
+    @Override
+	public synchronized void onResume() {
+		super.onResume();		
+		if (myService != null) {// 建立並開啟Service
+			// 若果Service為空狀態
+			if (myService.getState() == MyService.STATE_NONE) {
+				myService.start();// 開啟Service
+			}
+		}
+		mGLSurfaceView.onResume();
+	}
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		if (myService != null) {// 停止Service
+			myService.stop();
+		}
+	}
+	// 傳送訊息的方法
+	public void sendMessage(String message) {
+		// 先檢查是否已經連線到裝置
+		if (myService.getState() != MyService.STATE_CONNECTED) {
+//			Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+			return;
+		}
+		if (message.length() > 0) {// 若果訊息不為空再傳送訊息
+			byte[] send = message.getBytes();// 取得傳送訊息的位元組陣列，平行送
+			myService.write(send);
+		}
+	}
+	// 處理從Service發來的訊息的Handler
+	private final Handler mHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case Constant.MSG_READ:
+				byte[] readBuf = (byte[]) msg.obj;
+				// 建立要傳送的訊息的字串
+				String readMessage = new String(readBuf, 0, msg.arg1);
+				String[] ss=readMessage.split("  ");
+//				System.out.println(ss[0]+"====="+ss[1]);
+				tempvAngle=Float.valueOf(ss[0]);
+				temppAngle=Float.valueOf(ss[1]);
+				temphd_x=Float.valueOf(ss[2]);
+				temphd_y=Float.valueOf(ss[3]);
+				tempbulletflag=Integer.valueOf(ss[4]);
+//				if(GLSurfaceViewglag==1)
+//				{
+//					tempbulletflag1=Integer.valueOf(ss[4]);
+//				}
+//				if(GLSurfaceViewglag==2)
+//				{
+//					tempbulletflag2=Integer.valueOf(ss[4]);
+//				}
+//				System.out.println(tempvAngle+"====="+temppAngle+"====="+temphd_x+"====="+temphd_y+"====="+tempbulletCount);
+				break;
+				case Constant.MSG_DEVICE_NAME:
+				// 取得已連線的裝置名稱，並出現提示訊息
+				connectedNameStr = msg.getData().getString(
+						Constant.DEVICE_NAME);
+				Toast.makeText(getApplicationContext(),
+						"已連線到 " + connectedNameStr, Toast.LENGTH_SHORT)
+						.show();
+				break;
+			}
+		}
+	};
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		switch (requestCode) {//requestCode標誌從哪個Activity跳躍到該Activity 和startActivityForResult中的requestCode相對應 
+		case 1: //1代表連線裝置       //resultCode表示傳回值狀態 由子Activity透過其setResult()方法傳回       data包括了傳回資料
+			// 若果裝置清單Activity傳回一個連線的裝置
+			if (resultCode == Activity.RESULT_OK) {
+				// 取得裝置的MAC位址
+				String address = data.getExtras().getString(
+						MyDeviceListActivity.EXTRA_DEVICE_ADDR);
+				// 取得BLuetoothDevice物件
+				BluetoothDevice device = btAdapter.getRemoteDevice(address);
+				myService.connect(device);// 連線該裝置
+			}
+			break;
+		}
+	}
+	public boolean onPrepareOptionsMenu(Button button3){
+		// 啟動裝置清單Activity
+		Intent serverIntent = new Intent(this, MyDeviceListActivity.class);
+		startActivityForResult(serverIntent, 1);//1與方法onActivityResult中的1相對應
+		return true;
+	}
+}
+//列舉各個界面
+enum WhichView{
+	GAME_VIEW,
+	MAIN_MENU_VIEW,
+	Setting_VIEW,
+	End_VIEW,
+	RECORD_VIEW,
+	HELP_VIEW,
+	CHOSE_VIEW,
+	DUOREN_VIEW
+	}

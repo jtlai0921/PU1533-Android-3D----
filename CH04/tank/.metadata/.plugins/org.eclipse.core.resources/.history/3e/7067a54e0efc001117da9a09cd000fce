@@ -1,0 +1,110 @@
+package lwz.com.View;
+
+import lwz.com.cn.R;
+import lwz.com.cn.Tank4Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class HelpView extends SurfaceView implements SurfaceHolder.Callback{
+
+	Tank4Activity activity;
+	SurfaceHolder holder;
+	Bitmap background;
+	public static float ratio_width=1;
+	public static float ratio_height=1;
+	static boolean cdraw = true;
+	static  float scalX;
+	static  float scalY;
+	public HelpView(Tank4Activity activity) {
+		super(activity);
+		holder = this.getHolder();
+		holder.addCallback(this);
+		this.activity=activity;
+		this.getHolder().addCallback(this);
+		scalX=Tank4Activity.screenWidth;
+		scalY=Tank4Activity.screenHeight;
+		initBitmap();
+		cdraw = true;
+	}
+	
+	public boolean onTouchEvent(MotionEvent e)
+	{
+		int currentNum = e.getAction();
+		float x = e.getX();
+		float y = e.getY();
+		switch(currentNum)
+		{
+			case MotionEvent.ACTION_DOWN:
+				break;
+			case MotionEvent.ACTION_UP:
+				break;
+		}
+		return true;
+	}
+
+	private void initBitmap() {
+		background = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.background),ratio_width,ratio_height);
+		
+	}
+	private Bitmap scaleToFit(Bitmap bm,float width_Ratio,float height_Ratio) {
+		int width = bm.getWidth(); 							//圖片寬度
+    	int height = bm.getHeight();							//圖片高度
+    	Matrix matrix = new Matrix(); 
+    	matrix.postScale((float)width_Ratio, (float)height_Ratio);				//圖片等比例拉遠為原來的fblRatio倍
+    	Bitmap bmResult = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true);//宣告點陣圖        	
+    	return bmResult;									//傳回被縮放的圖片
+	}
+	
+	class MyThread implements Runnable
+	{
+		public void run() {
+			int width = background.getWidth();//取得資源點陣圖的寬
+            int height = background.getHeight();//取得資源點陣圖的高
+            float w = scalX/background.getWidth();
+            float h = scalY/background.getHeight();
+            Rect rect = new Rect (0,0,width,height); 
+            RectF rectf = new RectF(0,0,width*w,height*h);
+			while(cdraw)
+			{
+				Paint mpaint = new Paint();
+				Canvas canvas = holder.lockCanvas(null);
+				canvas.drawBitmap(background, rect,rectf,null);
+				canvas.save();
+				canvas.restore();
+				try
+				{
+					holder.unlockCanvasAndPost(canvas);
+				}catch(Exception e)
+				{
+					
+				}
+			}
+			background.recycle();
+		}
+	}
+
+	public void surfaceChanged(SurfaceHolder holder, int format, int width,
+			int height) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void surfaceCreated(SurfaceHolder holder) {
+		new Thread(new MyThread()).start();
+		
+	}
+
+	public void surfaceDestroyed(SurfaceHolder holder) {
+		// TODO Auto-generated method stub
+		
+	}
+
+}

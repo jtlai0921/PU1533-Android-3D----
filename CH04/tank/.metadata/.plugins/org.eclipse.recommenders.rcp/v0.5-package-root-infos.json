@@ -1,0 +1,67 @@
+[
+  {
+    "symbolicName": "annotations",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "4a4db7ac6ab739d52412722fe5dbc9f3b92b2828",
+    "jarFileModificationDate": "2012-07-14T06:22:44+08:00",
+    "location": "D:\\android-sdk\\tools\\support\\annotations.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "android-support-v4",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "612846c9857077a039b533718f72db3bc041d389",
+    "jarFileModificationDate": "2012-09-10T20:30:20+08:00",
+    "location": "C:\\Documents and Settings\\Administrator\\орн▒\\MyView\\libs\\android-support-v4.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "android",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "b50d42b32e1d8a6c2d5f19a846474d5e2199c68e",
+    "jarFileModificationDate": "2012-08-15T15:08:46+08:00",
+    "location": "D:\\android-sdk\\platforms\\android-10\\android.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "android",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "19cd75888d1d75d3ae3cb7a8692153da5d65eb13",
+    "jarFileModificationDate": "2012-08-14T09:50:14+08:00",
+    "location": "D:\\android-sdk\\platforms\\android-7\\android.jar",
+    "javaRuntime": false
+  },
+  {
+    "symbolicName": "android-support-v4",
+    "version": {
+      "major": -1,
+      "minor": -1,
+      "micro": -1,
+      "qualifier": ""
+    },
+    "jarFileFingerprint": "612846c9857077a039b533718f72db3bc041d389",
+    "jarFileModificationDate": "2012-09-11T20:12:06+08:00",
+    "location": "D:\\MyViews\\libs\\android-support-v4.jar",
+    "javaRuntime": false
+  }
+]

@@ -1,0 +1,194 @@
+package lwz.com.View;
+
+import lwz.com.cn.Tank4Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class MainView extends SurfaceView implements SurfaceHolder.Callback{
+
+	Tank4Activity activity;
+	SurfaceHolder holder;
+	Bitmap background;
+	Bitmap playup;
+	Bitmap playdown;
+	Bitmap settingup;
+	Bitmap settingdown;
+	Bitmap helpup;
+	Bitmap helpdown;
+	Bitmap exitup;
+	Bitmap exitdown;
+	static boolean cdraw = true;
+	public static float ratio_width=1;
+	public static float ratio_height=1;
+	static  float scalX;
+	static  float scalY;
+	static boolean play=true;
+	static boolean setting=true;
+	static boolean help=true;
+	static boolean exit = true;
+	public MainView(Tank4Activity activity) {
+		super(activity);
+		holder = this.getHolder();
+		holder.addCallback(this);
+		this.activity=activity;
+		this.getHolder().addCallback(this);
+		scalX=Tank4Activity.screenWidth;
+		scalY=Tank4Activity.screenHeight;
+		initBitmap();
+	}
+	
+	public boolean onTouchEvent(MotionEvent e)
+	{
+		int currentNum = e.getAction();
+		float x = e.getX();
+		float y = e.getY();
+		switch(currentNum)
+		{
+			case MotionEvent.ACTION_DOWN:
+				if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>100*Tank4Activity.scaleratioY&&y<100*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+					play=false;
+ 				}else if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>300*Tank4Activity.scaleratioY&&y<300*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+ 					setting=false;	
+ 				}else if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>500*Tank4Activity.scaleratioY&&y<500*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+ 					help=false;
+ 				}else if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>700*Tank4Activity.scaleratioY&&y<700*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+ 					exit=false;
+ 				}
+				break;
+			case MotionEvent.ACTION_UP:
+				play=true;
+				setting = true;
+				help=true;
+				exit=true;
+				if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>100*Tank4Activity.scaleratioY&&y<100*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+					cdraw=false;
+					activity.hd.sendEmptyMessage(2);
+ 				}if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>300*Tank4Activity.scaleratioY&&y<300*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+ 					cdraw=false;
+ 					activity.hd.sendEmptyMessage(1);
+ 				}if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>500*Tank4Activity.scaleratioY&&y<500*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+ 					cdraw=false;
+ 					activity.hd.sendEmptyMessage(6);
+ 				}if(x>(250*Tank4Activity.scaleratiox-playup.getWidth())/2&&x<(250*Tank4Activity.scaleratiox-playup.getWidth())/2+playup.getWidth()&&y>700*Tank4Activity.scaleratioY&&y<700*Tank4Activity.scaleratioY+playup.getHeight())
+ 				{
+ 					System.exit(0);
+ 					activity.editor.putBoolean("playback", false);
+ 				}
+				break;
+		}
+		return true;
+	}
+
+	private void initBitmap() {
+		background = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.background),ratio_width,ratio_height);
+		playup = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.playup),ratio_width,ratio_height);
+		playdown = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.playdown),ratio_width,ratio_height);
+		settingup = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.settingup),ratio_width,ratio_height);
+		settingdown = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.settingdown),ratio_width,ratio_height);
+		helpup = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.helpup),ratio_width,ratio_height);
+		helpdown = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.helpdown),ratio_width,ratio_height);
+		exitup = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.exitup),ratio_width,ratio_height);
+		exitdown = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.exitdown),ratio_width,ratio_height);
+	}
+
+
+	private Bitmap scaleToFit(Bitmap bm,float width_Ratio,float height_Ratio) {
+		int width = bm.getWidth(); 							//圖片寬度
+    	int height = bm.getHeight();							//圖片高度
+    	Matrix matrix = new Matrix(); 
+    	matrix.postScale((float)width_Ratio, (float)height_Ratio);				//圖片等比例拉遠為原來的fblRatio倍
+    	Bitmap bmResult = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true);//宣告點陣圖        	
+    	return bmResult;									//傳回被縮放的圖片
+	}
+
+	
+	class MyThread implements Runnable
+	{
+		public void run() {
+			int width = background.getWidth();//取得資源點陣圖的寬
+            int height = background.getHeight();//取得資源點陣圖的高
+            float w = scalX/background.getWidth();
+            float h = scalY/background.getHeight();
+            Rect rect = new Rect (0,0,width,height); 
+            RectF rectf = new RectF(0,0,width*w,height*h);
+			while(cdraw)
+			{
+				Paint mpaint = new Paint();
+				Canvas canvas = holder.lockCanvas(null);
+				canvas.drawBitmap(background, rect,rectf,null);
+				canvas.save();
+				canvas.restore();
+				if(play)
+				{
+					canvas.drawBitmap(playup,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,100*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(playdown,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,100*Tank4Activity.scaleratioY, mpaint);
+				}if(setting)
+				{
+					canvas.drawBitmap(settingup,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,300*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(settingdown,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,300*Tank4Activity.scaleratioY, mpaint); 
+				}if(help)
+				{
+					canvas.drawBitmap(helpup,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,500*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(helpdown,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,500*Tank4Activity.scaleratioY, mpaint); 
+				}if(exit)
+				{
+					canvas.drawBitmap(exitup,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,700*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(exitdown,(250*Tank4Activity.scaleratiox-playup.getWidth())/2,700*Tank4Activity.scaleratioY, mpaint); 
+				}
+				try
+				{
+					holder.unlockCanvasAndPost(canvas);
+				}catch(Exception e)
+				{
+					
+				}
+			}
+			background.recycle();
+			playup.recycle();
+			playdown.recycle();
+			settingup.recycle();
+			settingdown.recycle();
+			helpup.recycle();
+			helpdown.recycle();
+			exitup.recycle();
+			exitdown.recycle();
+		}
+		
+	}
+	public void surfaceChanged(SurfaceHolder holder, int format, int width,
+			int height) {
+		// TODO Auto-generated method stub
+		
+	}
+	public void surfaceCreated(SurfaceHolder holder) {
+		new Thread(new MyThread()).start();
+		
+	}
+	public void surfaceDestroyed(SurfaceHolder holder) {
+		
+	}
+
+}

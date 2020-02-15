@@ -1,0 +1,173 @@
+package com.example.myviews;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class SettingView extends SurfaceView implements SurfaceHolder.Callback{
+
+	MainActivity activity;
+	SurfaceHolder holder;
+	Bitmap background;
+	Bitmap musicon;
+	Bitmap musicoff;
+	Bitmap soundon;
+	Bitmap soundoff;
+	Bitmap back;
+	static boolean cdraw = true;
+	public static float ratio_width=1;
+	public static float ratio_height=1;
+	static  float scalX;
+	static  float scalY;
+	static boolean musicflag = false;
+	static boolean soundflag = false;
+	public SettingView(MainActivity activity) {
+		super(activity);
+		holder = this.getHolder();
+		holder.addCallback(this);
+		this.activity=activity;
+		this.getHolder().addCallback(this);
+		scalX=MainActivity.screenWidth;
+		scalY=MainActivity.screenHeight;
+		initBitmap();
+		cdraw = true;
+	}
+
+	public boolean onTouchEvent(MotionEvent e)
+	{
+		int currentNum = e.getAction();
+		float x = e.getX();
+		float y = e.getY();
+		switch(currentNum)
+		{
+			case MotionEvent.ACTION_DOWN:
+				break;
+			case MotionEvent.ACTION_UP:	
+				if(x>(250*MainActivity.scaleratiox-musicon.getWidth())/2&&x<(250*MainActivity.scaleratiox-musicon.getWidth())/2+musicon.getWidth()&&y>200*MainActivity.scaleratioY&&y<200*MainActivity.scaleratioY+musicon.getHeight())
+ 				{
+					musicflag=!musicflag;
+					activity.editor.putBoolean("playback", musicflag);
+					activity.editor.commit();
+					activity.playbackmusic=activity.sp.getBoolean("playback", false);
+					if(activity.playbackmusic)
+			        {
+						activity.soundutil.play_bg_sound();  
+			        }else
+			        {
+			        	try
+			        	{
+			        		activity.soundutil.stop_bg_sound();
+			        	}
+			        	catch(Exception exception)
+			        	{
+			        		System.out.println(""+exception);
+			        	}
+			        }
+ 				}else if(x>(250*MainActivity.scaleratiox-musicon.getWidth())/2&&x<(250*MainActivity.scaleratiox-musicon.getWidth())/2+musicon.getWidth()&&y>400*MainActivity.scaleratioY&&y<400*MainActivity.scaleratioY+musicon.getHeight())
+ 				{
+ 					soundflag=!soundflag;
+ 					activity.editor.putBoolean("playeffect", soundflag);
+ 					activity.editor.commit();
+ 				}
+				if(x>(800*MainActivity.scaleratiox-back.getWidth())/2&&x<(800*MainActivity.scaleratiox-back.getWidth())/2+back.getWidth()&&y>600*MainActivity.scaleratioY&&y<600*MainActivity.scaleratioY+back.getHeight())
+ 				{
+					cdraw=false;
+					MainView.cdraw=true;
+					activity.hd.sendEmptyMessage(0);
+ 				}
+				break;
+		}
+		return true;
+	}
+	
+	private void initBitmap() {
+		background = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.background),ratio_width,ratio_height);
+		musicon = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.musicon),ratio_width,ratio_height);
+		musicoff = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.musicoff),ratio_width,ratio_height);
+		soundon = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.soundon),ratio_width,ratio_height);
+		soundoff = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.soundoff),ratio_width,ratio_height);
+		back = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.back),ratio_width,ratio_height);
+		
+	}
+	
+	private Bitmap scaleToFit(Bitmap bm,float width_Ratio,float height_Ratio) {
+		int width = bm.getWidth(); 							//圖片寬度
+    	int height = bm.getHeight();							//圖片高度
+    	Matrix matrix = new Matrix(); 
+    	matrix.postScale((float)width_Ratio, (float)height_Ratio);				//圖片等比例拉遠為原來的fblRatio倍
+    	Bitmap bmResult = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true);//宣告點陣圖        	
+    	return bmResult;									//傳回被縮放的圖片
+	}
+
+	class MyThread implements Runnable
+	{
+		public void run() {
+			int width = background.getWidth();//取得資源點陣圖的寬
+            int height = background.getHeight();//取得資源點陣圖的高
+            float w = scalX/background.getWidth();
+            float h = scalY/background.getHeight();
+            Rect rect = new Rect (0,0,width,height); 
+            RectF rectf = new RectF(0,0,width*w,height*h);
+			while(cdraw)
+			{
+				Paint mpaint = new Paint();
+				Canvas canvas = holder.lockCanvas(null);
+				canvas.drawBitmap(background, rect,rectf,null);
+				canvas.save();
+				canvas.restore();
+				if(musicflag)
+				{
+					canvas.drawBitmap(musicon,(300*MainActivity.scaleratiox-musicon.getWidth())/2,200*MainActivity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(musicoff,(300*MainActivity.scaleratiox-musicon.getWidth())/2,200*MainActivity.scaleratioY, mpaint); 
+				}if(soundflag)
+				{
+					canvas.drawBitmap(soundon,(300*MainActivity.scaleratiox-musicon.getWidth())/2,400*MainActivity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(soundoff,(300*MainActivity.scaleratiox-musicon.getWidth())/2,400*MainActivity.scaleratioY, mpaint); 
+				}
+				canvas.drawBitmap(back,(800*MainActivity.scaleratiox-back.getWidth())/2,600*MainActivity.scaleratioY, mpaint); 
+				try
+				{
+					holder.unlockCanvasAndPost(canvas);
+				}catch(Exception e)
+				{
+					
+				}
+			}
+			background.recycle();
+			musicon.recycle();
+			musicoff.recycle();
+			soundon.recycle();
+			soundoff.recycle();
+			back.recycle();
+		}
+		
+	}
+	
+	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void surfaceCreated(SurfaceHolder arg0) {
+		musicflag = activity.sp.getBoolean("playback", false);
+		soundflag = activity.sp.getBoolean("playeffect", false);
+		new Thread(new MyThread()).start();
+		
+	}
+
+	public void surfaceDestroyed(SurfaceHolder arg0) {
+		
+	}
+
+}

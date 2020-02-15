@@ -1,0 +1,143 @@
+package lwz.com.View;
+
+import lwz.com.cn.R;
+import lwz.com.cn.Tank4Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class ModelView extends SurfaceView implements SurfaceHolder.Callback{
+
+	Tank4Activity activity;
+	SurfaceHolder holder;
+	Bitmap choseback;
+	Bitmap danren;
+	Bitmap duoren;
+	public static boolean cdraw = true;
+	public static float ratio_width=1;
+	public static float ratio_height=1;
+	static  float scalX;
+	static  float scalY;
+	static boolean single = true;
+	static boolean untouch = true;
+	public ModelView(Tank4Activity activity) {
+		super(activity);
+		holder = this.getHolder();
+		holder.addCallback(this);
+		this.activity=activity;
+		this.getHolder().addCallback(this);
+		scalX=Tank4Activity.screenWidth;
+		scalY=Tank4Activity.screenHeight;
+		initBitmap();
+		cdraw = true;
+	}
+
+	public boolean onTouchEvent(MotionEvent e)
+	{
+		int currentNum = e.getAction();
+		float x = e.getX();
+		float y = e.getY();
+		switch(currentNum)
+		{
+			case MotionEvent.ACTION_DOWN:
+				if(x>0&&x<480&&y>0&&y<540)
+				{
+					single=true;
+					untouch=false;
+				}else if(x>480&&x<960&&y>0&&y<540)
+				{
+					single=false;
+					untouch=false;
+				}
+				break;
+			case MotionEvent.ACTION_UP:
+				untouch=true;
+				if(x>0&&x<480&&y>0&&y<540)
+				{
+					cdraw=false;
+					activity.hd.sendEmptyMessage(4);
+				}
+				
+				break;
+		}
+		return true;
+	}
+	
+	private void initBitmap() {
+		choseback = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.choseback),ratio_width,ratio_height);
+		danren = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.danren),ratio_width,ratio_height);
+		duoren = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.duoren),ratio_width,ratio_height);
+	}
+	
+	private Bitmap scaleToFit(Bitmap bm,float width_Ratio,float height_Ratio) {
+		int width = bm.getWidth(); 							//圖片寬度
+    	int height = bm.getHeight();							//圖片高度
+    	Matrix matrix = new Matrix(); 
+    	matrix.postScale((float)width_Ratio, (float)height_Ratio);				//圖片等比例拉遠為原來的fblRatio倍
+    	Bitmap bmResult = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true);//宣告點陣圖        	
+    	return bmResult;									//傳回被縮放的圖片
+	}
+	
+	class MyThread implements Runnable
+	{
+		public void run() {
+			int width = choseback.getWidth();//取得資源點陣圖的寬
+            int height = choseback.getHeight();//取得資源點陣圖的高
+            float w = scalX/choseback.getWidth();
+            float h = scalY/choseback.getHeight();
+            Rect rect = new Rect (0,0,width,height); 
+            RectF rectf = new RectF(0,0,width*w,height*h);
+			while(cdraw)
+			{
+				Canvas canvas = holder.lockCanvas(null);
+				canvas.save();
+				canvas.restore();
+				if(untouch)
+				{
+					canvas.drawBitmap(choseback, rect,rectf,null);
+				}else
+				{
+					if(single)
+					{
+						canvas.drawBitmap(danren, rect,rectf,null);
+					}else
+					{
+						canvas.drawBitmap(duoren, rect,rectf,null);
+					}
+				}
+				try
+				{
+					holder.unlockCanvasAndPost(canvas);
+				}catch(Exception e)
+				{
+					
+				}
+			}
+			choseback.recycle();
+			danren.recycle();
+			duoren.recycle();
+		}
+	}
+	
+	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void surfaceCreated(SurfaceHolder holder) {
+		new Thread(new MyThread()).start();
+		
+	}
+
+	public void surfaceDestroyed(SurfaceHolder holder) {
+		// TODO Auto-generated method stub
+		
+	}
+
+}

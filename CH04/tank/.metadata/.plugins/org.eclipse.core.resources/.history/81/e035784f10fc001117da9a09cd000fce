@@ -1,0 +1,187 @@
+package lwz.com.View;
+
+import lwz.com.cn.R;
+import lwz.com.cn.Tank4Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class BlueView extends SurfaceView implements SurfaceHolder.Callback{
+
+	Tank4Activity activity;
+	SurfaceHolder holder;
+	Bitmap background;
+	Bitmap backgame;
+	Bitmap backgamedown;
+	Bitmap jionup;
+	Bitmap jiondown;
+	Bitmap creatup;
+	Bitmap creatdown;
+	Bitmap blueon;
+	Bitmap blueoff;
+	static boolean down = false;
+	static boolean cdraw = true;
+	static boolean jion = false;
+	static boolean creat = false;
+	public static boolean blue = false;
+	public static float ratio_width=1;
+	public static float ratio_height=1;
+	static  float scalX;
+	static  float scalY;
+	public BlueView(Tank4Activity activity) {
+		super(activity);
+		holder = this.getHolder();
+		holder.addCallback(this);
+		this.activity=activity;
+		this.getHolder().addCallback(this);
+		scalX=Tank4Activity.screenWidth;
+		scalY=Tank4Activity.screenHeight;
+		initBitmap();
+		cdraw = true;
+	}
+
+	public boolean onTouchEvent(MotionEvent e)
+	{
+		int currentNum = e.getAction();
+		float x = e.getX();
+		float y = e.getY();
+		switch(currentNum)
+		{
+			case MotionEvent.ACTION_DOWN:
+				if(x>(800*Tank4Activity.scaleratiox-backgame.getWidth())/2&&x<(800*Tank4Activity.scaleratiox-backgame.getWidth())/2+backgame.getWidth()&&y>600*Tank4Activity.scaleratioY&&y<600*Tank4Activity.scaleratioY+backgame.getHeight())
+				{
+					down=true;
+				}
+				if(x>(300*Tank4Activity.scaleratiox-backgame.getWidth())/2&&x<(300*Tank4Activity.scaleratiox-backgame.getWidth())/2+backgame.getWidth()&&y>600*Tank4Activity.scaleratioY&&y<600*Tank4Activity.scaleratioY+backgame.getHeight())
+				{
+					jion=true;
+				}
+				if(x>(300*Tank4Activity.scaleratiox-backgame.getWidth())/2&&x<(300*Tank4Activity.scaleratiox-backgame.getWidth())/2+backgame.getWidth()&&y>300*Tank4Activity.scaleratioY&&y<300*Tank4Activity.scaleratioY+backgame.getHeight())
+				{
+					creat=true;
+				}
+				break;
+			case MotionEvent.ACTION_UP:
+				down = false;
+				jion = false;
+				creat = false;
+				if(x>(800*Tank4Activity.scaleratiox-backgame.getWidth())/2&&x<(800*Tank4Activity.scaleratiox-backgame.getWidth())/2+backgame.getWidth()&&y>600*Tank4Activity.scaleratioY&&y<600*Tank4Activity.scaleratioY+backgame.getHeight())
+				{
+					
+				}if(x>(800*Tank4Activity.scaleratiox-backgame.getWidth())/2&&x<(800*Tank4Activity.scaleratiox-backgame.getWidth())/2+backgame.getWidth()&&y>300*Tank4Activity.scaleratioY&&y<300*Tank4Activity.scaleratioY+backgame.getHeight())
+				{
+					blue=!blue;
+					activity.hd.sendEmptyMessage(4);
+				}
+				break;
+		}
+		return true;
+	}
+
+	private void initBitmap() {
+		background = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.background),ratio_width,ratio_height);
+		backgame = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.backgame),ratio_width,ratio_height);
+		backgamedown = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.backgamedown),ratio_width,ratio_height);
+		jionup = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.jionup),ratio_width,ratio_height);
+		jiondown = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.jiondown),ratio_width,ratio_height);
+		creatup = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.creatup),ratio_width,ratio_height);
+		creatdown = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.creatdown),ratio_width,ratio_height);
+		blueon = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.blueon),ratio_width,ratio_height);
+		blueoff = scaleToFit(BitmapFactory.decodeResource(activity.getResources(), R.drawable.blueoff),ratio_width,ratio_height);
+	}
+	
+	private Bitmap scaleToFit(Bitmap bm,float width_Ratio,float height_Ratio) {
+		int width = bm.getWidth(); 							//圖片寬度
+    	int height = bm.getHeight();							//圖片高度
+    	Matrix matrix = new Matrix(); 
+    	matrix.postScale((float)width_Ratio, (float)height_Ratio);				//圖片等比例拉遠為原來的fblRatio倍
+    	Bitmap bmResult = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true);//宣告點陣圖        	
+    	return bmResult;									//傳回被縮放的圖片
+	}
+	
+	class MyThread implements Runnable
+	{
+		public void run() {
+			int width = background.getWidth();//取得資源點陣圖的寬
+            int height = background.getHeight();//取得資源點陣圖的高
+            float w = scalX/background.getWidth();
+            float h = scalY/background.getHeight();
+            Rect rect = new Rect (0,0,width,height); 
+            RectF rectf = new RectF(0,0,width*w,height*h);
+			while(cdraw)
+			{
+				Paint mpaint = new Paint();
+				Canvas canvas = holder.lockCanvas(null);
+				canvas.drawBitmap(background, rect,rectf,null);
+				canvas.save();
+				canvas.restore();
+				if(!down)
+				{
+					canvas.drawBitmap(backgame,(800*Tank4Activity.scaleratiox-backgame.getWidth())/2,600*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(backgamedown,(800*Tank4Activity.scaleratiox-backgamedown.getWidth())/2,600*Tank4Activity.scaleratioY, mpaint); 
+				}
+				if(!jion)
+				{
+					canvas.drawBitmap(jionup,(300*Tank4Activity.scaleratiox-backgame.getWidth())/2,600*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(jiondown,(300*Tank4Activity.scaleratiox-backgame.getWidth())/2,600*Tank4Activity.scaleratioY, mpaint); 
+				}if(!creat)
+				{
+					canvas.drawBitmap(creatup,(300*Tank4Activity.scaleratiox-backgame.getWidth())/2,300*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(creatdown,(300*Tank4Activity.scaleratiox-backgame.getWidth())/2,300*Tank4Activity.scaleratioY, mpaint); 
+				}
+				if(blue)
+				{
+					canvas.drawBitmap(blueon,(800*Tank4Activity.scaleratiox-blueon.getWidth())/2,300*Tank4Activity.scaleratioY, mpaint); 
+				}else
+				{
+					canvas.drawBitmap(blueoff,(800*Tank4Activity.scaleratiox-blueoff.getWidth())/2,300*Tank4Activity.scaleratioY, mpaint); 
+				}
+				try
+				{
+					holder.unlockCanvasAndPost(canvas);
+				}catch(Exception e)
+				{
+					
+				}
+			}
+			background.recycle();
+			backgame.recycle();
+			backgamedown.recycle();
+			jionup.recycle();
+			jiondown.recycle();
+			creatup.recycle();
+			creatdown.recycle();
+			blueon.recycle();
+			blueoff.recycle();
+		}
+	}
+
+	public void surfaceChanged(SurfaceHolder holder, int format, int width,
+			int height) {
+		
+	}
+
+	public void surfaceCreated(SurfaceHolder holder) {
+		new Thread(new MyThread()).start();
+		
+	}
+
+
+	public void surfaceDestroyed(SurfaceHolder holder) {
+		
+	}
+
+}

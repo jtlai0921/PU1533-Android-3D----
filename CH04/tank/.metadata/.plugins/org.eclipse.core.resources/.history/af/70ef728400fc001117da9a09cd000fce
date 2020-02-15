@@ -1,0 +1,144 @@
+package lwz.com.Tempcn;
+
+import static lwz.com.cn.Constant.*;
+import javax.microedition.khronos.opengles.GL10;
+import lwz.com.Object.BulletTextureByVertex;
+import lwz.com.Object.Line;
+import lwz.com.Object.TextureRect;
+import lwz.com.cn.Constant;
+import lwz.com.cn.MySurfaceView;
+
+public class TempBullet {
+	BulletTextureByVertex bullet;
+	Line line;
+	
+	//子彈的出膛位置
+	float startX;
+	float startY;
+	float startZ;
+	//子彈的實時位置
+	public float cuerrentX;
+	public float cuerrentY;	
+	public float cuerrentZ;
+	//子彈的出膛速度
+	float vx;
+	float vy;
+	float vz;	
+	//子出現膛方向
+	 float  startAngle;
+	////子彈的實時方向
+	float cuerrentAngle=0;
+	//子彈發射後的累計時間
+	float timeLive=0;
+	//用於繪制爆炸動畫效果的紋理矩形群組
+	TextureRect[] trExplo;
+	//爆炸動畫是否開始標志
+	 public static boolean tempanmiStart=false;
+	//爆炸動畫框索引
+	 public static int tempanmiIndex=0;
+	//爆炸位置
+	 public static float tempanmiX;
+	 public static float tempanmiY;
+	 public static float tempanmiZ;
+	//爆炸動畫紋理矩形的標志板角度
+	float anmiYAngle;
+	//MySurfaceView的參考
+	public static boolean tankeflag2=true;
+	OtherSurfaceView ov;
+	MySurfaceView mv;
+	public int flag=0;
+	
+	public TempBullet(BulletTextureByVertex bullet,float startX,float startY,float startZ,float vx,float vy,float vz,TextureRect[] trExplo,float startAngle,OtherSurfaceView ov)
+	{
+		this.trExplo=trExplo;
+		this.bullet=bullet;
+		this.startX=startX;
+		this.startY=startY;
+		this.startZ=startZ;
+		this.vx=vx;
+		this.vy=vy;
+		this.vz=vz;
+		this.startAngle=startAngle;
+		this.ov=ov;	
+		cuerrentAngle=startAngle;
+		cuerrentX=startX;
+		cuerrentY=startY;
+		cuerrentZ=startZ;
+	}
+	
+	public TempBullet(BulletTextureByVertex bullet,float startX,float startY,float startZ,float vx,float vy,float vz,TextureRect[] trExplo,float startAngle,MySurfaceView mv)
+	{
+		this.trExplo=trExplo;
+		this.bullet=bullet;
+		this.startX=startX;
+		this.startY=startY;
+		this.startZ=startZ;
+		this.vx=vx;
+		this.vy=vy;
+		this.vz=vz;
+		this.startAngle=startAngle;
+		this.mv=mv;	
+		cuerrentAngle=startAngle;
+		cuerrentX=startX;
+		cuerrentY=startY;
+		cuerrentZ=startZ;
+	}
+	public void go()
+	{
+		timeLive=timeLive+TIME_SPAN;
+		cuerrentX=startX+vx*timeLive;
+		cuerrentY=startY+vy*timeLive;
+		cuerrentZ=startZ;
+		
+		int rows=lowWallmapdata.length;
+		
+		for(int i=0;i<rows;i++)
+		{
+			//18為子彈的長度          18*Math.cos(cuerrentAngle)為目前角度下子彈在Y軸上的長度     18*Math.sin(cuerrentAngle)為目前角度下子彈在X軸上的長度
+			if(cuerrentX+(18*Math.sin(Math.toRadians(cuerrentAngle)))>lowWallmapdata[i][0]*Wall_UNIT_SIZE&&cuerrentX+(18*Math.sin(Math.toRadians(cuerrentAngle)))<(lowWallmapdata[i][0]+lowWallmapdata[i][3])*Wall_UNIT_SIZE&&cuerrentY+(18*Math.cos(Math.toRadians(cuerrentAngle)))<lowWallmapdata[i][1]*Wall_UNIT_SIZE&&cuerrentY+(18*Math.cos(Math.toRadians(cuerrentAngle)))>(lowWallmapdata[i][1]-lowWallmapdata[i][4])*Wall_UNIT_SIZE)
+			{
+				flag++;
+				if(cuerrentY-vy*TIME_SPAN+(18*Math.cos(Math.toRadians(cuerrentAngle)))<lowWallmapdata[i][1]*Wall_UNIT_SIZE&&cuerrentY-vy*TIME_SPAN+(18*Math.cos(Math.toRadians(cuerrentAngle)))>(lowWallmapdata[i][1]-lowWallmapdata[i][4])*Wall_UNIT_SIZE)
+				{
+					cuerrentAngle=-startAngle;
+					System.out.println("====================="+cuerrentAngle+"====================");
+					timeLive=0;
+					vx=-vx;
+					startX=cuerrentX;
+					startY=cuerrentY;
+					cuerrentZ=startZ;
+				}	
+				else
+				{
+					cuerrentAngle=180-startAngle;
+//						System.out.println("====================="+cuerrentAngle+"====================");
+					timeLive=0;	
+					vy=-vy;
+					startX=cuerrentX;
+					startY=cuerrentY;
+					cuerrentZ=startZ;
+				}
+			}		
+		}
+		if(flag==2)
+		{
+			OtherSurfaceView.bulletCount--;
+			tempanmiStart=true;	
+//			ov.activity.vibrator.vibrate(Constant.COLLISION_SOUND_PATTERN,-1);//震動
+			tempanmiIndex=0;
+			tempanmiX=cuerrentX;
+			tempanmiY=cuerrentY;
+			tempanmiZ=cuerrentZ;
+			ov.tempbulletAl.remove(this);
+		}
+	}
+	public void drawSelf(GL10 gl)		{
+		gl.glPushMatrix();//保護現場
+		gl.glTranslatef(cuerrentX, cuerrentY, cuerrentZ);//搬移到指定位置
+		gl.glRotatef(-90, 1, 0, 0);
+		gl.glRotatef(cuerrentAngle, 0, 1, 0);
+		//若爆炸動畫沒有開始，標準繪制炮彈
+		bullet.drawSelf(gl);
+		gl.glPopMatrix();
+	}
+}

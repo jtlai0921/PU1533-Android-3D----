@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, GameActivity!</string>
+    <string name="app_name">3D極品撞球</string>
+    <string name="ok">再來一局</string>
+    <string name="cancel">退出遊戲</string>
+    <string name="win">恭喜你贏得此局!</string>
+    <string name="lose9">9球進洞!</string>
+    <string name="lose8">8球進洞!</string>
+    <string name="time_up">時間到!</string>
+    <string name="break_record">恭喜您打破紀錄!</string>
+    <string name="game_over">遊戲結束：</string>
+</resources>
